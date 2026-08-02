@@ -129,6 +129,7 @@ const PlayerAvatarCanvas = ({ role }) => {
 
 const StorySection = () => {
   const container = useRef();
+  const videoRef = useRef();
 
   useGSAP(() => {
     gsap.fromTo('.story-reveal',
@@ -145,6 +146,26 @@ const StorySection = () => {
       }
     );
   }, { scope: container });
+
+  // Autoplay on scroll into view, pause on scroll out
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
 
   const players = [
     { title: 'PLAYER_01', role: '[LEAD]' },
@@ -177,24 +198,80 @@ const StorySection = () => {
           </p>
         </div>
 
-        {/* Video Placeholder Container */}
-        <div style={{
-          width: '100%',
-          aspectRatio: '16/9',
-          border: '1px solid rgba(155, 168, 168, 0.3)',
-          background: 'rgba(0, 39, 41, 0.8)',
-          position: 'relative',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          overflow: 'hidden'
-        }}>
-          {/* Subtle animated brackets for the "missing signal" effect */}
-          <div style={{ color: 'var(--color-accent)', fontFamily: 'var(--font-mono)', fontSize: '1.2rem', opacity: 0.6 }}>
-            [ ESTABLISHING VIDEO LINK... ]
+        {/* ── Local Video Player: scroll-triggered autoplay ── */}
+        <div style={{ width: '100%', position: 'relative' }}>
+
+          {/* Status bar */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '6px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.65rem',
+            letterSpacing: '2px',
+            color: 'rgba(57, 255, 20, 0.6)',
+            padding: '0 2px',
+          }}>
+            <span>▸ RECOVERED FOOTAGE // SECTOR-4 // REACTOR COMPOUND</span>
+            <span style={{ color: 'rgba(155,168,168,0.4)' }}>51.3894°N  30.0994°E</span>
           </div>
-          <div className="noise-overlay" style={{ opacity: 0.1 }}></div>
+
+          {/* 16:9 video container */}
+          <div style={{
+            position: 'relative',
+            width: '100%',
+            background: '#000',
+            border: '1px solid rgba(57, 255, 20, 0.25)',
+            boxShadow: '0 0 30px rgba(57,255,20,0.06)',
+            overflow: 'hidden',
+          }}>
+            {/* Corner brackets */}
+            <div style={{ position:'absolute', top:0, left:0, width:'20px', height:'20px', borderTop:'2px solid rgba(57,255,20,0.7)', borderLeft:'2px solid rgba(57,255,20,0.7)', zIndex:3, pointerEvents:'none' }} />
+            <div style={{ position:'absolute', top:0, right:0, width:'20px', height:'20px', borderTop:'2px solid rgba(57,255,20,0.7)', borderRight:'2px solid rgba(57,255,20,0.7)', zIndex:3, pointerEvents:'none' }} />
+            <div style={{ position:'absolute', bottom:0, left:0, width:'20px', height:'20px', borderBottom:'2px solid rgba(57,255,20,0.7)', borderLeft:'2px solid rgba(57,255,20,0.7)', zIndex:3, pointerEvents:'none' }} />
+            <div style={{ position:'absolute', bottom:0, right:0, width:'20px', height:'20px', borderBottom:'2px solid rgba(57,255,20,0.7)', borderRight:'2px solid rgba(57,255,20,0.7)', zIndex:3, pointerEvents:'none' }} />
+
+            {/* Scanline overlay */}
+            <div style={{
+              position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
+              backgroundImage: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 3px)',
+            }} />
+
+            {/* Native HTML5 video — autoplays muted on scroll into view */}
+            <video
+              ref={videoRef}
+              src="/Jumanji Open World - Official Trailer - Only In Cinemas This Christmas.mp4"
+              muted
+              loop
+              playsInline
+              controls
+              preload="metadata"
+              style={{
+                display: 'block',
+                width: '100%',
+                height: 'auto',
+                position: 'relative',
+                zIndex: 1,
+              }}
+            />
+          </div>
+
+          {/* Caption */}
+          <div style={{
+            marginTop: '8px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.6rem',
+            letterSpacing: '2px',
+            color: 'rgba(155,168,168,0.35)',
+            display: 'flex',
+            justifyContent: 'space-between',
+          }}>
+            <span>ZONE_4_BROADCAST_ARCHIVE.mp4</span>
+            <span>CLASSIFICATION: OMEGA</span>
+          </div>
         </div>
+
       </div>
 
       {/* Right Column: Squad Roster */}

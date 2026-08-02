@@ -51,7 +51,7 @@ function App() {
       <div className="app-container" ref={appRef}>
         <CustomCursor />
         <div className="noise-overlay"></div>
-        
+
         {/* Fog/Mist Overlay */}
         <div className="fog-container">
           <div className="fog-layer layer-1"></div>
@@ -63,7 +63,7 @@ function App() {
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'radial-gradient(circle at center, transparent 15%, rgba(0,0,0,0.9) 90%)', pointerEvents: 'none', zIndex: 90 }}></div>
 
         <ConditionalNavigation />
-        
+
         <Routes>
           <Route path="/" element={
             <main>
@@ -76,7 +76,7 @@ function App() {
               <Footer />
             </main>
           } />
-          
+
           <Route path="/register" element={
             <main>
               <RegistrationPage />
@@ -89,7 +89,7 @@ function App() {
               <RegistrationSuccess />
             </main>
           } />
-          
+
           <Route path="/admin" element={
             <main>
               <AdminDashboard />
