@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -11,7 +11,6 @@ import HistorySection from './components/HistorySection';
 import RulebooksSection from './components/RulebooksSection';
 import StorySection from './components/StorySection';
 import ImageSection from './components/ImageSection';
-import CustomCursor from './components/CustomCursor';
 import RegistrationBanner from './components/RegistrationBanner';
 import Footer from './components/Footer';
 import RegistrationPage from './components/RegistrationPage';
@@ -32,10 +31,61 @@ function ScrollToTop() {
 
 function ConditionalNavigation() {
   const location = useLocation();
-  if (location.pathname.startsWith('/admin') || location.pathname.startsWith('/register') || location.pathname.startsWith('/registration-success')) {
+  if (
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/register') ||
+    location.pathname.startsWith('/registration-success')
+  ) {
     return null;
   }
   return <Navigation />;
+}
+
+/**
+ * FogController — shows the fog overlay ONLY when the home section (#home)
+ * or the registration banner (#registration-banner) is visible in the viewport.
+ * Uses IntersectionObserver so there is zero scroll-listener cost.
+ */
+function FogController() {
+  const [fogVisible, setFogVisible] = useState(false);
+
+  useEffect(() => {
+    const targets = ['home', 'registration-banner'].map(id =>
+      document.getElementById(id)
+    ).filter(Boolean);
+
+    if (targets.length === 0) return;
+
+    let visibleCount = 0;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          visibleCount += entry.isIntersecting ? 1 : -1;
+        });
+        setFogVisible(visibleCount > 0);
+      },
+      { threshold: 0.1 }
+    );
+
+    targets.forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      className="fog-container"
+      style={{
+        transition: 'opacity 0.8s ease',
+        opacity: fogVisible ? 1 : 0,
+        pointerEvents: 'none',
+      }}
+    >
+      <div className="fog-layer layer-1"></div>
+      <div className="fog-layer layer-2"></div>
+      <div className="fog-layer layer-3"></div>
+    </div>
+  );
 }
 
 function App() {
@@ -49,18 +99,18 @@ function App() {
     <Router>
       <ScrollToTop />
       <div className="app-container" ref={appRef}>
-        <CustomCursor />
         <div className="noise-overlay"></div>
 
-        {/* Fog/Mist Overlay */}
-        <div className="fog-container">
-          <div className="fog-layer layer-1"></div>
-          <div className="fog-layer layer-2"></div>
-          <div className="fog-layer layer-3"></div>
-        </div>
+        {/* Fog — controlled by IntersectionObserver, visible only on #home and #registration-banner */}
+        <FogController />
 
         {/* Global Vignette Overlay (Flashlight effect) */}
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'radial-gradient(circle at center, transparent 15%, rgba(0,0,0,0.9) 90%)', pointerEvents: 'none', zIndex: 90 }}></div>
+        <div style={{
+          position: 'fixed', top: 0, left: 0,
+          width: '100vw', height: '100vh',
+          background: 'radial-gradient(circle at center, transparent 15%, rgba(0,0,0,0.9) 90%)',
+          pointerEvents: 'none', zIndex: 90
+        }}></div>
 
         <ConditionalNavigation />
 

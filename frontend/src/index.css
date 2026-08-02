@@ -16,6 +16,11 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  cursor: auto;
+}
+
+html, body {
+  cursor: auto !important;
 }
 
 body {
@@ -388,10 +393,7 @@ section::after {
   background: transparent;
 }
 
-/* Hide default cursor to use CustomCursor */
-* {
-  cursor: none !important;
-}
+
 
 /* Helper to hide heavy 3D elements on mobile */
 @media (max-width: 1024px) {

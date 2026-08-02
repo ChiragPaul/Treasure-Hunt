@@ -131,6 +131,7 @@ const StorySection = () => {
   const container = useRef();
   const videoRef = useRef();
   const [isPlaying, setIsPlaying] = React.useState(false);
+  const [isMuted,   setIsMuted]   = React.useState(true); // starts muted (browser autoplay policy)
 
   useGSAP(() => {
     gsap.fromTo('.story-reveal',
@@ -148,21 +149,25 @@ const StorySection = () => {
     );
   }, { scope: container });
 
-  // Sync isPlaying state with native video events
+  // Sync isPlaying + isMuted state from native video events
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const onPlay  = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    video.addEventListener('play',  onPlay);
-    video.addEventListener('pause', onPause);
+    const onPlay         = () => setIsPlaying(true);
+    const onPause        = () => setIsPlaying(false);
+    const onVolumeChange = () => setIsMuted(video.muted);
+    video.addEventListener('play',         onPlay);
+    video.addEventListener('pause',        onPause);
+    video.addEventListener('volumechange', onVolumeChange);
     return () => {
-      video.removeEventListener('play',  onPlay);
-      video.removeEventListener('pause', onPause);
+      video.removeEventListener('play',         onPlay);
+      video.removeEventListener('pause',        onPause);
+      video.removeEventListener('volumechange', onVolumeChange);
     };
   }, []);
 
-  // Autoplay with audio on scroll into view; pause on scroll out
+  // Autoplay muted on scroll into view (browser policy requires muted for autoplay);
+  // pause on scroll out.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -170,12 +175,8 @@ const StorySection = () => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          video.muted = false;
-          video.play().catch(() => {
-            // Browser blocked unmuted autoplay — try muted as fallback
-            video.muted = true;
-            video.play().catch(() => {});
-          });
+          video.muted = true; // must be muted for autoplay without gesture
+          video.play().catch(() => {});
         } else {
           video.pause();
         }
@@ -191,11 +192,17 @@ const StorySection = () => {
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
-      video.muted = false;
       video.play().catch(() => {});
     } else {
       video.pause();
     }
+  };
+
+  const toggleMute = (e) => {
+    e.stopPropagation();
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = !video.muted;
   };
 
   const players = [
@@ -244,51 +251,106 @@ const StorySection = () => {
             style={{ display: 'block', width: '100%', height: 'auto' }}
           />
 
-          {/* Play / Pause button — center overlay */}
-          <div
-            onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-            style={{
-              position: 'absolute',
-              bottom: '14px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 4,
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
-              background: 'rgba(0,0,0,0.55)',
-              border: '2px solid rgba(255,255,255,0.7)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backdropFilter: 'blur(4px)',
-              transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
-              e.currentTarget.style.borderColor = '#fff';
-              e.currentTarget.style.transform = 'translateX(-50%) scale(1.1)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(0,0,0,0.55)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.7)';
-              e.currentTarget.style.transform = 'translateX(-50%) scale(1)';
-            }}
-          >
-            {isPlaying ? (
-              /* Pause icon — two vertical bars */
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                <rect x="5" y="3" width="4" height="18" rx="1"/>
-                <rect x="15" y="3" width="4" height="18" rx="1"/>
-              </svg>
-            ) : (
-              /* Play icon — triangle */
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="white" style={{ marginLeft: '3px' }}>
-                <polygon points="5,3 19,12 5,21"/>
-              </svg>
-            )}
+          {/* ── Control bar: Play/Pause + Mute/Unmute ── */}
+          <div style={{
+            position: 'absolute',
+            bottom: '14px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 4,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}>
+
+            {/* Play / Pause */}
+            <button
+              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+              title={isPlaying ? 'Pause' : 'Play'}
+              style={{
+                width: '44px', height: '44px',
+                borderRadius: '50%',
+                background: 'rgba(0,0,0,0.6)',
+                border: '2px solid rgba(255,255,255,0.75)',
+                color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+                backdropFilter: 'blur(6px)',
+                transition: 'background 0.2s, transform 0.15s',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
+                flexShrink: 0,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.6)';        e.currentTarget.style.transform = 'scale(1)'; }}
+            >
+              {isPlaying ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                  <rect x="5" y="3" width="4" height="18" rx="1"/>
+                  <rect x="15" y="3" width="4" height="18" rx="1"/>
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white" style={{ marginLeft: '2px' }}>
+                  <polygon points="5,3 19,12 5,21"/>
+                </svg>
+              )}
+            </button>
+
+            {/* Mute / Unmute */}
+            <button
+              onClick={toggleMute}
+              title={isMuted ? 'Unmute' : 'Mute'}
+              style={{
+                width: '44px', height: '44px',
+                borderRadius: '50%',
+                background: isMuted ? 'rgba(204,0,0,0.7)' : 'rgba(0,0,0,0.6)',
+                border: isMuted ? '2px solid rgba(255,80,80,0.9)' : '2px solid rgba(255,255,255,0.75)',
+                color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+                backdropFilter: 'blur(6px)',
+                transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
+                flexShrink: 0,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+            >
+              {isMuted ? (
+                /* Muted — speaker with X */
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                  <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                  <line x1="23" y1="9" x2="17" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                  <line x1="17" y1="9" x2="23" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              ) : (
+                /* Unmuted — speaker with waves */
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                  <path d="M11 5L6 9H2v6h4l5 4V5z" fill="white" stroke="none"/>
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                </svg>
+              )}
+            </button>
           </div>
+
+          {/* Muted hint badge — top-right corner, disappears once unmuted */}
+          {isMuted && (
+            <div style={{
+              position: 'absolute', top: '10px', right: '10px', zIndex: 4,
+              background: 'rgba(0,0,0,0.7)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: '#fff',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.6rem',
+              letterSpacing: '1.5px',
+              padding: '4px 10px',
+              backdropFilter: 'blur(4px)',
+              pointerEvents: 'none',
+              textTransform: 'uppercase',
+            }}>
+              🔇 MUTED — CLICK 🔊 TO UNMUTE
+            </div>
+          )}
         </div>
 
       </div>

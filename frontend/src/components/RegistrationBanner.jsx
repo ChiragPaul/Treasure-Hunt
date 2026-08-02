@@ -21,7 +21,7 @@ const RegistrationBanner = () => {
   }, { scope: bannerRef });
 
   return (
-    <section ref={bannerRef} style={{
+    <section id="registration-banner" ref={bannerRef} style={{
       minHeight: 'auto',
       padding: '4rem',
       backgroundColor: 'rgba(0, 39, 41, 0.5)',
@@ -33,6 +33,7 @@ const RegistrationBanner = () => {
       position: 'relative',
       zIndex: 10
     }}>
+
       <div className="banner-content" style={{
         display: 'flex',
         alignItems: 'center',
