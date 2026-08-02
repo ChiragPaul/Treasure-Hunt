@@ -130,6 +130,7 @@ const PlayerAvatarCanvas = ({ role }) => {
 const StorySection = () => {
   const container = useRef();
   const videoRef = useRef();
+  const [isPlaying, setIsPlaying] = React.useState(false);
 
   useGSAP(() => {
     gsap.fromTo('.story-reveal',
@@ -147,7 +148,21 @@ const StorySection = () => {
     );
   }, { scope: container });
 
-  // Autoplay on scroll into view, pause on scroll out
+  // Sync isPlaying state with native video events
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onPlay  = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    video.addEventListener('play',  onPlay);
+    video.addEventListener('pause', onPause);
+    return () => {
+      video.removeEventListener('play',  onPlay);
+      video.removeEventListener('pause', onPause);
+    };
+  }, []);
+
+  // Autoplay with audio on scroll into view; pause on scroll out
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -155,17 +170,33 @@ const StorySection = () => {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          video.play().catch(() => {});
+          video.muted = false;
+          video.play().catch(() => {
+            // Browser blocked unmuted autoplay — try muted as fallback
+            video.muted = true;
+            video.play().catch(() => {});
+          });
         } else {
           video.pause();
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.4 }
     );
 
     observer.observe(video);
     return () => observer.disconnect();
   }, []);
+
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.muted = false;
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  };
 
   const players = [
     { title: 'PLAYER_01', role: '[LEAD]' },
@@ -198,77 +229,65 @@ const StorySection = () => {
           </p>
         </div>
 
-        {/* ── Local Video Player: scroll-triggered autoplay ── */}
-        <div style={{ width: '100%', position: 'relative' }}>
+        {/* ── Video Player ── */}
+        <div
+          onClick={togglePlay}
+          style={{ width: '100%', position: 'relative', cursor: 'pointer', background: '#000', lineHeight: 0 }}
+        >
+          {/* Video */}
+          <video
+            ref={videoRef}
+            src="/Jumanji Open World - Official Trailer - Only In Cinemas This Christmas.mp4"
+            loop
+            playsInline
+            preload="metadata"
+            style={{ display: 'block', width: '100%', height: 'auto' }}
+          />
 
-          {/* Status bar */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '6px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.65rem',
-            letterSpacing: '2px',
-            color: 'rgba(57, 255, 20, 0.6)',
-            padding: '0 2px',
-          }}>
-            <span>▸ RECOVERED FOOTAGE // SECTOR-4 // REACTOR COMPOUND</span>
-            <span style={{ color: 'rgba(155,168,168,0.4)' }}>51.3894°N  30.0994°E</span>
-          </div>
-
-          {/* 16:9 video container */}
-          <div style={{
-            position: 'relative',
-            width: '100%',
-            background: '#000',
-            border: '1px solid rgba(57, 255, 20, 0.25)',
-            boxShadow: '0 0 30px rgba(57,255,20,0.06)',
-            overflow: 'hidden',
-          }}>
-            {/* Corner brackets */}
-            <div style={{ position:'absolute', top:0, left:0, width:'20px', height:'20px', borderTop:'2px solid rgba(57,255,20,0.7)', borderLeft:'2px solid rgba(57,255,20,0.7)', zIndex:3, pointerEvents:'none' }} />
-            <div style={{ position:'absolute', top:0, right:0, width:'20px', height:'20px', borderTop:'2px solid rgba(57,255,20,0.7)', borderRight:'2px solid rgba(57,255,20,0.7)', zIndex:3, pointerEvents:'none' }} />
-            <div style={{ position:'absolute', bottom:0, left:0, width:'20px', height:'20px', borderBottom:'2px solid rgba(57,255,20,0.7)', borderLeft:'2px solid rgba(57,255,20,0.7)', zIndex:3, pointerEvents:'none' }} />
-            <div style={{ position:'absolute', bottom:0, right:0, width:'20px', height:'20px', borderBottom:'2px solid rgba(57,255,20,0.7)', borderRight:'2px solid rgba(57,255,20,0.7)', zIndex:3, pointerEvents:'none' }} />
-
-            {/* Scanline overlay */}
-            <div style={{
-              position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-              backgroundImage: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 3px)',
-            }} />
-
-            {/* Native HTML5 video — autoplays muted on scroll into view */}
-            <video
-              ref={videoRef}
-              src="/Jumanji Open World - Official Trailer - Only In Cinemas This Christmas.mp4"
-              muted
-              loop
-              playsInline
-              controls
-              preload="metadata"
-              style={{
-                display: 'block',
-                width: '100%',
-                height: 'auto',
-                position: 'relative',
-                zIndex: 1,
-              }}
-            />
-          </div>
-
-          {/* Caption */}
-          <div style={{
-            marginTop: '8px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '0.6rem',
-            letterSpacing: '2px',
-            color: 'rgba(155,168,168,0.35)',
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}>
-            <span>ZONE_4_BROADCAST_ARCHIVE.mp4</span>
-            <span>CLASSIFICATION: OMEGA</span>
+          {/* Play / Pause button — center overlay */}
+          <div
+            onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+            style={{
+              position: 'absolute',
+              bottom: '14px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 4,
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              background: 'rgba(0,0,0,0.55)',
+              border: '2px solid rgba(255,255,255,0.7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backdropFilter: 'blur(4px)',
+              transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.5)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+              e.currentTarget.style.borderColor = '#fff';
+              e.currentTarget.style.transform = 'translateX(-50%) scale(1.1)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(0,0,0,0.55)';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.7)';
+              e.currentTarget.style.transform = 'translateX(-50%) scale(1)';
+            }}
+          >
+            {isPlaying ? (
+              /* Pause icon — two vertical bars */
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+                <rect x="5" y="3" width="4" height="18" rx="1"/>
+                <rect x="15" y="3" width="4" height="18" rx="1"/>
+              </svg>
+            ) : (
+              /* Play icon — triangle */
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white" style={{ marginLeft: '3px' }}>
+                <polygon points="5,3 19,12 5,21"/>
+              </svg>
+            )}
           </div>
         </div>
 
