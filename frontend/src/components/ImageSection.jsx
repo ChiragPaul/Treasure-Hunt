@@ -7,35 +7,64 @@ const ImageCanvas = ({ scrollProgress }) => {
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     let animationFrameId;
     let imgDataObj = null;
 
+    const isMobile = window.innerWidth < 768;
+    const sources = isMobile
+      ? ['/phone_v1.webp', '/phone_v1.png', '/phone v1.png', '/image.webp', '/image.png']
+      : ['/image.webp', '/image.png', '/phone_v1.webp'];
+
+    let sourceIndex = 0;
     const img = new Image();
-    img.src = window.innerWidth < 768 ? '/phone v1.png' : '/image.png';
-    img.onload = () => {
-      const offscreenCanvas = document.createElement('canvas');
-      // Keep full original resolution for sampling
-      offscreenCanvas.width = img.width;
-      offscreenCanvas.height = img.height;
-      const oCtx = offscreenCanvas.getContext('2d');
-      oCtx.drawImage(img, 0, 0);
-      imgDataObj = oCtx.getImageData(0, 0, img.width, img.height);
+
+    const tryNextSource = () => {
+      if (sourceIndex < sources.length) {
+        img.src = sources[sourceIndex];
+        sourceIndex++;
+      }
     };
 
+    img.onload = () => {
+      try {
+        const offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = img.width;
+        offscreenCanvas.height = img.height;
+        const oCtx = offscreenCanvas.getContext('2d');
+        oCtx.drawImage(img, 0, 0);
+        imgDataObj = oCtx.getImageData(0, 0, img.width, img.height);
+      } catch (err) {
+        console.warn('Canvas sample error:', err);
+        tryNextSource();
+      }
+    };
+
+    img.onerror = () => {
+      console.warn(`Failed loading image: ${img.src}, trying fallback...`);
+      tryNextSource();
+    };
+
+    tryNextSource();
+
     const resize = () => {
+      if (!canvas || !canvas.parentElement) return;
       const parent = canvas.parentElement;
-      canvas.width = parent.clientWidth || window.innerWidth;
-      canvas.height = parent.clientHeight || window.innerHeight;
+      canvas.width = parent.clientWidth || window.innerWidth || 360;
+      canvas.height = parent.clientHeight || window.innerHeight || 640;
     };
     window.addEventListener('resize', resize);
-    setTimeout(resize, 100);
+    setTimeout(resize, 50);
+    setTimeout(resize, 200);
     resize();
 
     let isVisible = true;
     const observer = new IntersectionObserver(([entry]) => {
-      isVisible = entry.isIntersecting;
-    });
+      if (entry) {
+        isVisible = entry.isIntersecting;
+      }
+    }, { threshold: 0.01 });
     observer.observe(canvas);
 
     const noiseMap = Array.from({ length: 300 }, () =>
@@ -45,9 +74,15 @@ const ImageCanvas = ({ scrollProgress }) => {
     let time = 0;
     const render = () => {
       time += 0.05;
+
+      if (!isVisible) {
+        animationFrameId = requestAnimationFrame(render);
+        return;
+      }
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (!imgDataObj || !isVisible) {
+      if (!imgDataObj) {
         animationFrameId = requestAnimationFrame(render);
         return;
       }
@@ -141,20 +176,24 @@ const ImageCanvas = ({ scrollProgress }) => {
         position: 'absolute',
         bottom: '0',
         width: '100%',
-        padding: '4rem 2rem 3rem 2rem',
+        padding: '3rem 1rem 2rem 1rem',
         background: 'linear-gradient(to top, rgba(0, 39, 41, 1) 0%, rgba(0, 39, 41, 0.8) 40%, rgba(0, 39, 41, 0) 100%)',
         textAlign: 'center',
         zIndex: 10,
-        pointerEvents: 'none'
+        pointerEvents: 'none',
+        boxSizing: 'border-box'
       }}>
         <div className="image-text" style={{
           color: 'var(--color-text)',
           fontFamily: 'var(--font-sans)',
-          fontSize: '1.4rem',
-          letterSpacing: '5px',
+          fontSize: 'clamp(0.85rem, 3.2vw, 1.3rem)',
+          letterSpacing: 'clamp(1px, 1vw, 4px)',
           fontWeight: '600',
           textShadow: '0px 4px 15px rgba(0, 0, 0, 0.9), 0 0 20px rgba(155, 168, 168, 0.6)',
-          textTransform: 'uppercase'
+          textTransform: 'uppercase',
+          maxWidth: '90%',
+          marginInline: 'auto',
+          lineHeight: 1.4
         }}>
           GEAR UP WITH YOURSELF WITH THE RULES CAREFULLY TO ESCAPE
         </div>
