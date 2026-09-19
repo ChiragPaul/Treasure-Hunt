@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PwaInstallButton from './PwaInstallPrompt';
 
 const generateTeamNumber = () => {
   const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -290,10 +291,13 @@ const RegistrationPage = () => {
   return (
     <div className="registration-wrapper">
       
-      {/* Back to Base button */}
-      <button onClick={() => navigate('/')} className="back-btn-doc">
-        &lt; ABORT AND INCINERATE DOCUMENT
-      </button>
+      {/* Back to Base button & App Download */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', maxWidth: '850px', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.8rem' }}>
+        <button onClick={() => navigate('/')} className="back-btn-doc" style={{ margin: 0 }}>
+          &lt; ABORT AND INCINERATE DOCUMENT
+        </button>
+        <PwaInstallButton variant="nav" style={{ fontSize: '0.8rem', padding: '6px 12px' }} />
+      </div>
 
       <div className="document-container">
         {/* Hazard Header */}
@@ -301,7 +305,10 @@ const RegistrationPage = () => {
         
         {/* Document Header */}
         <div className="doc-header">
-          <div className="doc-meta">FORM-4B // DEPT OF BIO-RESEARCH // CLEARANCE LEVEL: OMEGA</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.3rem' }}>
+            <div className="doc-meta">FORM-4B // DEPT OF BIO-RESEARCH // CLEARANCE LEVEL: OMEGA</div>
+            <PwaInstallButton variant="dossier" />
+          </div>
           <h2 className="doc-title">CONFIDENTIAL PROJECT CLEARANCE</h2>
           <div className="red-stamp">TOP SECRET</div>
         </div>

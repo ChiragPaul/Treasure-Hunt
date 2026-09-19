@@ -3,8 +3,6 @@ import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import RadiationSymbol from './RadiationSymbol';
 import MagicRings from './MagicRings';
-import RadarInstrument from './RadarInstrument';
-import TransmissionTower from './TransmissionTower';
 
 const HomeSection = () => {
   const sectionRef = useRef();
@@ -71,36 +69,6 @@ const HomeSection = () => {
         opacity: 0.8
       }}>
         <RadiationSymbol />
-      </div>
-
-      {/* Left Industrial Reactor Plant */}
-      <div className="desktop-only" style={{
-        position: 'absolute',
-        top: '10%',
-        bottom: '0',
-        left: '2%',
-        width: '400px',
-        height: '85vh',
-        zIndex: 4,
-        pointerEvents: 'auto',
-        opacity: 0.9
-      }}>
-        <RadarInstrument />
-      </div>
-
-      {/* Right Transmission Tower Plant */}
-      <div className="desktop-only" style={{
-        position: 'absolute',
-        top: '10%',
-        bottom: '0',
-        right: '2%',
-        width: '400px',
-        height: '85vh',
-        zIndex: 4,
-        pointerEvents: 'auto',
-        opacity: 0.9
-      }}>
-        <TransmissionTower />
       </div>
 
       {/* Hazard Warning Borders */}
